@@ -1,83 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
+window.onload = function () {
+    fetch('/api/books')
+        .then(res => res.json())
+        .then(books => {
+            const bookTable = document.getElementById('book-table');
+            const borrowBookSelect = document.getElementById('borrowBookId');
+            const returnBookSelect = document.getElementById('returnBookId');
 
-<head>
-    <meta charset="UTF-8">
-    <title>Library Catalog</title>
-    <!-- Link to External CSS -->
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
+            const borrowingData = JSON.parse(localStorage.getItem('borrowingData')) || {};
 
-<body>
-    <div class="container">
-        <h1>Book Catalog</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Book ID</th>
-                    <th>Title</th>
-                    <th>Author</th>
-                    <th>Publisher</th>
-                    <th>Genre</th>
-                    <th>Borrower</th>
-                    <th>Borrow Date</th>
-                    <th>Return Date</th>
-                    <th>State</th>
-                </tr>
-            </thead>
-            <tbody id="book-table">
-                <!-- Book entries will be populated here -->
-            </tbody>
-        </table>
+            borrowBookSelect.innerHTML = '<option value="">Select a Book</option>';
+            returnBookSelect.innerHTML = '<option value="">Select a Book</option>';
 
-        <!-- Forms Container -->
-        <div class="forms-container">
-            <!-- Borrow Form -->
-            <div class="form-container">
-                <h2>Borrow Book</h2>
-                <form id="borrowForm">
-                    <label for="borrowBookId">Book:</label>
-                    <select id="borrowBookId" required>
-                        <option value="">Select a Book</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
+            books.forEach(book => {
+                const id = book.book_id;
+                const isBorrowed = borrowingData[id] ? true : false;
 
-                    <label for="borrowerName">Borrower's Name:</label>
-                    <input type="text" id="borrowerName" required>
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', id);
+                row.innerHTML = `
+                    <td>${id}</td>
+                    <td><a href="viewer.html?id=${id}" target="_blank">${book.title}</a></td>
+                    <td>${book.publisher}</td>
+                    <td>${book.publication_year}</td>
+                    <td>${book.format}</td>
+                    <td>${isBorrowed ? borrowingData[id].borrowerName : ''}</td>
+                    <td>${isBorrowed ? borrowingData[id].borrowDate : ''}</td>
+                    <td>${isBorrowed ? borrowingData[id].returnDate : ''}</td>
+                    <td>${isBorrowed ? 'Borrowed' : 'Present'}</td>
+                `;
+                bookTable.appendChild(row);
 
-                    <label for="borrowDate">Borrow Date:</label>
-                    <input type="date" id="borrowDate" required>
+                if (!isBorrowed) {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = `${id} - ${book.title}`;
+                    borrowBookSelect.appendChild(option);
+                } else {
+                    const returnOption = document.createElement('option');
+                    returnOption.value = id;
+                    returnOption.textContent = `${id} - ${book.title}`;
+                    returnBookSelect.appendChild(returnOption);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading books:', error);
+        });
+};
 
-                    <button type="submit">Borrow Book</button>
-                </form>
-            </div>
-
-            <!-- Return Form -->
-            <div class="form-container">
-                <h2>Return Book</h2>
-                <form id="returnForm">
-                    <label for="returnBookId">Book:</label>
-                    <select id="returnBookId" required>
-                        <option value="">Select a Book</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
-
-                    <label for="returnDate">Return Date:</label>
-                    <input type="date" id="returnDate" required>
-
-                    <button type="submit">Return Book</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Clear Data Button -->
-        <div class="form-container">
-            <button id="clearDataBtn">Clear All Borrowing Data</button>
-        </div>
-    </div>
-
-    <!-- Link to External JS -->
-    <script src="/static/js/index.js"></script>
-</body>
-
-</html>
+// Borrow and return logic can remain as-is (using localStorage)
