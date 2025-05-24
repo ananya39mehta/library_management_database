@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
 from decimal import Decimal
 from datetime import datetime
+from sqlalchemy import text
 
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
@@ -136,15 +137,19 @@ class BookCategory(db.Model):
 def home():
     return render_template('index.html')
 
-@app.route('/viewer.html')
+@app.route('/viewer')
 def viewer():
     return render_template('viewer.html')
 
-@app.route('/borrower_management.html')
+@app.route('/borrower_management')
 def borrower_management():
     return render_template('borrower_management.html')
 
-@app.route('/loan_fine.html')
+@app.route('/book_management')
+def book_management():
+    return render_template('book_management.html')
+
+@app.route('/loan_fine')
 def loan_fine_management():
     return render_template('loan_fine.html')
 
@@ -153,12 +158,14 @@ def get_books():
     try:
         search_term = request.args.get('search', '').strip()
 
+        # Load book metadata, languages, categories, and physical copies
         query = Book.query.options(
             db.joinedload(Book.languages),
-            db.joinedload(Book.categories),  # fix: use plural 'categories'
-            db.joinedload(Book.copies)       # load copies to access shelf locations
+            db.joinedload(Book.categories),
+            db.joinedload(Book.copies)
         )
 
+        # Apply search filter
         if search_term:
             query = query.join(Category, isouter=True).filter(
                 db.or_(
@@ -169,27 +176,31 @@ def get_books():
             )
 
         books = query.all()
-        book_ids = [book.metadata_id for book in books]
 
-        # Prefetch active loans for these copies (using book_copy.book_id)
+        # Get all book copy IDs to check loans
+        all_copy_ids = [copy.book_id for book in books for copy in book.copies]
+
+        # Fetch active loans for those copies
         active_loans = Loan.query.filter(
-            Loan.book_id.in_([copy.book_id for book in books for copy in book.copies]),
+            Loan.book_id.in_(all_copy_ids),
             Loan.return_date.is_(None)
         ).all()
 
+        # Group loans by book_id
         loans_dict = {}
         for loan in active_loans:
             loans_dict.setdefault(loan.book_id, []).append(loan)
 
         books_data = []
         for book in books:
-            # Collect all shelf locations for copies of this book
-            shelf_locations = list({copy.shelf_location for copy in book.copies})
+            # Unique shelf locations for all copies of this book
+            shelf_locations = sorted({copy.shelf_location for copy in book.copies if copy.shelf_location})
 
-            # Count active loans for this book's copies
+            # Gather active loans for all copies of this book
             active_loans_for_book = []
             for copy in book.copies:
                 active_loans_for_book.extend(loans_dict.get(copy.book_id, []))
+
             active_count = len(active_loans_for_book)
             active_loan = active_loans_for_book[0] if active_loans_for_book else None
 
@@ -203,14 +214,14 @@ def get_books():
                 'edition': book.edition,
                 'format': book.format,
                 'languages': [lang.language for lang in book.languages],
-                'shelf_locations': shelf_locations,
+                'shelf_locations': shelf_locations,  # list of locations like ['F1', 'F2']
                 'total_copies': len(book.copies),
                 'available_copies': len(book.copies) - active_count,
-                'category_names': [cat.name for cat in book.categories],  # multiple categories possible
+                'category_names': [cat.name for cat in book.categories],
                 'borrower_name': active_loan.borrower.name if active_loan and active_loan.borrower else None,
                 'borrow_date': active_loan.checkout_date.isoformat() if active_loan else None,
                 'return_date': active_loan.return_date.isoformat() if active_loan and active_loan.return_date else None,
-                'borrowed_by_current_user': False
+                'borrowed_by_current_user': False  # update this based on current user if needed
             })
 
         return jsonify(books_data)
@@ -220,6 +231,7 @@ def get_books():
         traceback.print_exc()
         app.logger.error(f"Error loading books: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
@@ -250,40 +262,82 @@ def get_stats():
 @app.route('/api/books', methods=['POST'])
 def add_book():
     data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Invalid JSON data'}), 400
+
+    # Required fields
+    title = data.get('title')
+    author = data.get('author')
+    isbn = data.get('isbn')
+    copies = int(data.get('copies', 1))
+
+    # Optional metadata
+    publisher = data.get('publisher')
+    publication_year = data.get('publication_year')
+    edition = data.get('edition')
+    format_ = data.get('format')
+    shelf_location = data.get('shelf_location', 'General')
+
+    # Optional relational data
+    language = data.get('language')
+    categories = data.get('categories', [])  # Expecting list of category_ids
+
+    if not title or not isbn:
+        return jsonify({'error': 'Title and ISBN are required'}), 400
 
     try:
-        new_book = Book(
-            title=data.get('title'),
-            author=data.get('author'),
-            isbn=data.get('isbn'),
-            edition=data.get('edition'),
-            publication_year=data.get('publication_year'),
-            publisher=data.get('publisher'),
-            shelf_location=data.get('shelf_location'),
-            total_copies=data.get('total_copies', 1),
-            available_copies=data.get('available_copies', 1),
-            format=data.get('format'),
-            category_id=data.get('category_id')
-        )
-        db.session.add(new_book)
-        db.session.flush()
+        # Step 1: Check for existing metadata by ISBN
+        metadata = db.session.execute(
+            text("SELECT metadata_id FROM book WHERE isbn = :isbn"),
+            {'isbn': isbn}
+        ).fetchone()
 
-        languages = data.get('language')
-        if languages:
-            if isinstance(languages, str):
-                languages = [languages]
-            for lang in languages:
-                db.session.add(BookLanguage(book_id=new_book.book_id, language=lang))
+        if metadata:
+            metadata_id = metadata[0]
+        else:
+            # Insert into book (metadata)
+            result = db.session.execute(text("""
+                INSERT INTO book (title, author, publisher, isbn, publication_year, edition, format)
+                VALUES (:title, :author, :publisher, :isbn, :year, :edition, :format)
+                RETURNING metadata_id
+            """), {
+                'title': title,
+                'author': author,
+                'publisher': publisher,
+                'isbn': isbn,
+                'year': publication_year,
+                'edition': edition,
+                'format': format_
+            })
+            metadata_id = result.scalar()
+
+        # Step 2: Insert into book_copy
+        for _ in range(copies):
+            db.session.execute(text("""
+                INSERT INTO book_copy (metadata_id, shelf_location)
+                VALUES (:metadata_id, :shelf_location)
+            """), {'metadata_id': metadata_id, 'shelf_location': shelf_location})
+
+        # Step 3: Insert into book_language if provided
+        if language:
+            db.session.execute(text("""
+                INSERT INTO book_language (metadata_id, language)
+                VALUES (:metadata_id, :language)
+                ON CONFLICT DO NOTHING
+            """), {'metadata_id': metadata_id, 'language': language})
+
+        # Step 4: Insert into book_category if provided
+        for category_id in categories:
+            db.session.execute(text("""
+                INSERT INTO book_category (metadata_id, category_id)
+                VALUES (:metadata_id, :category_id)
+                ON CONFLICT DO NOTHING
+            """), {'metadata_id': metadata_id, 'category_id': category_id})
 
         db.session.commit()
-        return jsonify({'message': 'Book added successfully'}), 201
+        return jsonify({'message': f'{copies} copies added successfully.'}), 201
 
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error adding book: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': str(e)}), 500
 
 # Route to Borrow Book 
 @app.route('/api/borrow', methods=['POST'])

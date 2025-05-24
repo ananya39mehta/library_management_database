@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Book Management</title>
+  <link rel="stylesheet" href="/static/css/style_or.css" />
+</head>
+<body>
+  <h2>Book Management</h2>
+
+  <!-- Add Book Form -->
+  <h3>Add New Book</h3>
+  <form id="addBookForm">
+    <input type="text" id="title" placeholder="Title" required />
+    <input type="text" id="author" placeholder="Author" />
+    <input type="text" id="isbn" placeholder="ISBN" required />
+    <input type="text" id="publisher" placeholder="Publisher" />
+    <input type="number" id="publication_year" placeholder="Publication Year" />
+    <input type="text" id="edition" placeholder="Edition" />
+    <input type="text" id="format" placeholder="Format" />
+    <input type="text" id="language" placeholder="Language" />
+    <input type="text" id="shelf_location" placeholder="Shelf Location" />
+    <input type="number" id="copies" placeholder="Number of Copies" min="1" required />
+
+    <label for="categories">Category IDs (comma-separated):</label>
+    <input type="text" id="categories" placeholder="e.g. 1,2,5" />
+
+    <button type="submit">Add Book</button>
+  </form>
+
+  <hr />
+
+  <!-- Book List -->
+  <h3>Book Catalog</h3>
+  <button id="refreshBooksBtn">Refresh Book List</button>
+  <table id="bookTable">
+    <thead>
+      <tr>
+        <th>Metadata ID</th>
+        <th>Title</th>
+        <th>Author</th>
+        <th>ISBN</th>
+        <th>Shelf</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="{{ url_for('static', filename='js/book_management.js') }}"></script>
+</body>
+</html>
