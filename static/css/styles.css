@@ -1,0 +1,155 @@
+/* === Navbar === */
+.navbar {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px 0;
+}
+
+.nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-decoration: none;
+}
+
+.nav-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 25px;
+}
+
+.nav-menu a {
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.nav-menu a:hover,
+.nav-menu a.active {
+    text-decoration: underline;
+}
+
+/* === Quick Stats Section === */
+.quick-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.quick-stats .stat {
+    background: white;
+    border: 1px solid #dee2e6;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 3px 6px rgb(0 0 0 / 0.1);
+    flex: 1 1 180px;
+    text-align: center;
+}
+
+.quick-stats .stat h2 {
+    margin-bottom: 10px;
+    color: #343a40;
+}
+
+.quick-stats .stat p {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* === Search Section === */
+.search-section {
+    margin-bottom: 30px;
+    display: flex;
+    gap: 10px;
+}
+
+#search-input {
+    flex-grow: 1;
+    font-size: 16px;
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#search-input:focus {
+    border-color: #80bdff;
+    background-color: #fff;
+    outline: none;
+}
+
+#search-btn {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#search-btn:hover {
+    background-color: #0056b3;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 1px solid #dee2e6;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tr:hover {
+    background-color: #e9ecef;
+}
+
+td {
+    border-bottom: 1px solid #dee2e6;
+}
+
+th:first-child, td:first-child {
+    padding-left: 20px;
+}
+
+th:last-child, td:last-child {
+    padding-right: 20px;
+}
+
+/* Highlight Borrowed Books */
+.borrowed {
+    background-color: #fff3cd;
+}
+
+.borrowed:hover {
+    background-color: #ffeeba;
+}

@@ -1,83 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-
+    
 <head>
-    <meta charset="UTF-8">
-    <title>Library Catalog</title>
-    <!-- Link to External CSS -->
-    <link rel="stylesheet" href="/static/css/style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Library Home</title>
+    <link rel="stylesheet" href="static/css/styles.css" />
 </head>
 
 <body>
-    <div class="container">
-        <h1>Book Catalog</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Book ID</th>
-                    <th>Title</th>
-                    <th>Author</th>
-                    <th>Publisher</th>
-                    <th>Genre</th>
-                    <th>Borrower</th>
-                    <th>Borrow Date</th>
-                    <th>Return Date</th>
-                    <th>State</th>
-                </tr>
-            </thead>
-            <tbody id="book-table">
-                <!-- Book entries will be populated here -->
-            </tbody>
-        </table>
-
-        <!-- Forms Container -->
-        <div class="forms-container">
-            <!-- Borrow Form -->
-            <div class="form-container">
-                <h2>Borrow Book</h2>
-                <form id="borrowForm">
-                    <label for="borrowBookId">Book:</label>
-                    <select id="borrowBookId" required>
-                        <option value="">Select a Book</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
-
-                    <label for="borrowerName">Borrower's Name:</label>
-                    <input type="text" id="borrowerName" required>
-
-                    <label for="borrowDate">Borrow Date:</label>
-                    <input type="date" id="borrowDate" required>
-
-                    <button type="submit">Borrow Book</button>
-                </form>
-            </div>
-
-            <!-- Return Form -->
-            <div class="form-container">
-                <h2>Return Book</h2>
-                <form id="returnForm">
-                    <label for="returnBookId">Book:</label>
-                    <select id="returnBookId" required>
-                        <option value="">Select a Book</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
-
-                    <label for="returnDate">Return Date:</label>
-                    <input type="date" id="returnDate" required>
-
-                    <button type="submit">Return Book</button>
-                </form>
-            </div>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="nav-logo">Library System</a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link active">Home</a></li>
+                <li><a href="/borrower_management.html" class="nav-link">Borrower Management</a></li>
+                <li><a href="#" class="nav-link">Book Management</a></li>
+                <li><a href="#" class="nav-link">Loans & Transactions</a></li>
+            </ul>
         </div>
+    </nav>
 
-        <!-- Clear Data Button -->
-        <div class="form-container">
-            <button id="clearDataBtn">Clear All Borrowing Data</button>
-        </div>
-    </div>
+    <main class="container">
+        <h1>Dashboard Summary</h1>
+        <section id="quick-stats" class="quick-stats">
+            <div class="stat">
+                <h2>Total Books</h2>
+                <p id="total-books">-</p>
+            </div>
+            <div class="stat">
+                <h2>Total Borrowers</h2>
+                <p id="total-borrowers">-</p>
+            </div>
+            <div class="stat">
+                <h2>Active Loans</h2>
+                <p id="active-loans">-</p>
+            </div>
+            <div class="stat">
+                <h2>Overdue Loans</h2>
+                <p id="overdue-loans">-</p>
+            </div>
+        </section>
 
-    <!-- Link to External JS -->
-    <script src="/static/js/index.js"></script>
+        <section class="search-section">
+            <input
+                type="text"
+                id="search-input"
+                placeholder="Search books by title, author or category..."
+                autocomplete="off"
+            />
+            <button id="search-btn">Search</button>
+        </section>
+
+        <section id="book-catalog">
+            <h2>Book Catalog</h2>
+            <table id="books-table" aria-label="Book Catalog">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                        <th>Publication Year</th>
+                        <th>Available Copies</th>
+                        <th>Shelf Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Book rows inserted here -->
+                </tbody>
+            </table>
+            <p id="no-results" style="display:none;">No books found.</p>
+        </section>
+    </main>
+
+    <script src="static/js/index.js"></script>
 </body>
 
 </html>

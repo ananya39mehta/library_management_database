@@ -102,6 +102,69 @@ th:last-child, td:last-child {
 .borrowed:hover {
     background-color: #ffeeba;
 }
+/* ========================================================================== */
+/* Beautify .container-Book-Add                                              */
+/* ========================================================================== */
+
+.container-Book-Add {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto 30px auto;
+    padding: 30px;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.container-Book-Add h1 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 28px;
+    color: #343a40;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+.container-Book-Add input,
+.container-Book-Add select,
+.container-Book-Add label {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    font-size: 16px;
+    color: #495057;
+    box-sizing: border-box;
+}
+
+.container-Book-Add input:focus,
+.container-Book-Add select:focus {
+    border-color: #80bdff;
+    background-color: #fff;
+    outline: none;
+}
+
+.container-Book-Add button {
+    padding: 12px 20px;
+    margin-top: 20px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.container-Book-Add button:hover {
+    background-color: #0056b3;
+}
+
 
 /* ==========================================================================
    Form Styles

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Library Catalog</title>
+    <!-- Link to External CSS -->
+    <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+    <div class="container">
+        <h1>Book Catalog</h1>
+        <nav>
+            <a href="/">Home</a> | <a href="/borrower_management.html">Borrower Management</a>
+        </nav>
+
+        <!-- Table to show all books -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Book ID</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Publisher</th>
+                    <th>Year</th>
+                    <th>Available Copies</th>
+                    <th>Shelf Location</th>
+                </tr>
+            </thead>
+            <tbody id="book-table">
+                <!-- Book entries will be added here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container-Book-Add" id="borrowerManagementSection">
+        <h1>Add New Book</h1>
+        <!-- Form to add new books -->
+        <form id="addBookForm">
+            <input type="text" id="title" placeholder="Title" required />
+            <input type="text" id="isbn" placeholder="ISBN" />
+            <input type="text" id="edition" placeholder="Edition" />
+            <input type="number" id="publication_year" placeholder="Publication Year" />
+            <input type="text" id="publisher" placeholder="Publisher" />
+            <input type="text" id="shelf_location" placeholder="Shelf Location" />
+            <input type="number" id="total_copies" placeholder="Total Copies" min="1" />
+            <select id="language" name="language" required>
+                <option value="">Select Language</option>
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+            </select>
+            <input type="text" id="format" placeholder="Format" />
+            <button type="submit">Add Book</button>
+        </form>
+
+        <h3>Check Fine Details</h3>
+        <form id="checkfine">
+            <input type="text" id="borrowerIdFine" placeholder="Borrower ID" required />
+            <button type="submit">Get Fine Details</button>
+        </form>
+        <div id="fineDisplay" style="margin-top: 10px; font-weight: bold;"></div>
+
+        <div class="forms-container" style="display: flex; gap: 40px; margin-top: 30px;">
+            <!-- Borrow Book Form -->
+            <div class="form-container">
+                <h2>Borrow Book</h2>
+                <form id="borrowForm">
+                    <select id="borrowBookId" required>
+                        <option value="">Select a Book</option>
+                    </select>
+                    <input type="int" id="borrowerId" placeholder="Borrower ID" required />
+                    <input type="date" id="borrowDate" required />
+                    <button type="submit">Borrow Book</button>
+                </form>
+            </div>
+
+            <!-- Return Book Form -->
+            <div class="form-container">
+                <h2>Return Book</h2>
+                <form id="returnForm">
+                    <select id="returnBookId" required>
+                        <option value="">Select a Book</option>
+                    </select>
+                    <input type="date" id="returnDate" required />
+                    <button type="submit">Return Book</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Button to clear all borrowing data (if implemented) -->
+        <div class="form-container" style="margin-top: 20px;">
+            <button id="clearDataBtn">Clear All Borrowing Data</button>
+        </div>
+
+        <div id="message" style="margin-top: 20px; font-weight: bold;"></div>
+    </div>
+
+    <!-- Link to External JS -->
+    <script src="/static/js/index.js"></script>
+
+    <script>
+      // Smooth scroll to borrower management section
+      document.getElementById('showBorrowMgmtBtn').addEventListener('click', () => {
+        document.getElementById('borrowerManagementSection').scrollIntoView({ behavior: 'smooth' });
+      });
+    </script>
+</body>
+
+</html>

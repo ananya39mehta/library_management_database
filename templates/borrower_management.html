@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Library Catalog</title>
+    <!-- Link to External CSS -->
+    <link rel="stylesheet" href="/static/css/style_or.css" />
+</head>
+
+<body>
+    <!-- borrower_management.html -->
+    <div>
+        <h2>Search Borrower</h2>
+        <input type="number" id="borrowerIdInput" placeholder="Enter borrower Id" />
+        <button id="searchBorrowerBtn">Search</button>
+    </div>
+
+    <div id="borrowerDetails" style="display:none; margin-top:20px;">
+        <h3>Borrower Details</h3>
+
+        <!-- Display current info -->
+        <p><strong>Name:</strong> <span id="borrowerNameDisplay"></span></p>
+        <p><strong>Email:</strong> <span id="borrowerEmailDisplay"></span></p>
+        <p><strong>Phone:</strong> <span id="borrowerPhoneDisplay"></span></p>
+        <p><strong>Department:</strong> <span id="borrowerDepartmentDisplay"></span></p>
+        <p><strong>Registered On:</strong> <span id="borrowerRegistered"></span></p>
+
+        <h4>Edit Borrower Info</h4>
+        <form id="editBorrowerForm">
+            <label>
+                Name:
+                <input type="text" id="borrowerName" />
+            </label><br/>
+            <label>
+                Email:
+                <input type="email" id="borrowerEmail" />
+            </label><br/>
+            <label>
+                Phone:
+                <input type="text" id="borrowerPhone" />
+            </label><br/>
+            <label>
+                Department:
+                <input type="text" id="borrowerDepartment" />
+            </label><br/>
+            <button type="button" id="editBorrowerBtn">Save Changes</button>
+        </form>
+
+        <h4>Current Loans</h4>
+        <table id="currentLoansTable" border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+            <thead>
+            <tr>
+                <th>Book Title</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h4>Fines</h4>
+        <p><strong>Total Fines Due:</strong> ₹<span id="totalFines"></span></p>
+
+        <h5>Fine Payment History</h5>
+        <ul id="finePaymentHistory"></ul>
+
+        <h4>Record Fine Payment</h4>
+        <form id="finePaymentForm">
+            <label>
+                Loan ID:
+                <input type="number" id="fineLoanId" required />
+            </label><br/>
+            <label>
+                Amount:
+                <input type="number" id="fineAmount" step="0.01" required />
+            </label><br/>
+            <label>
+                Payment Method:
+                <input type="text" id="finePaymentMethod" />
+            </label><br/>
+            <button type="button" id="recordFinePaymentBtn">Submit Payment</button>
+        </form>
+    </div>
+
+<script src="/static/js/borrow_management.js"></script>
+</body>
+</html>
