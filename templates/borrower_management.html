@@ -24,6 +24,29 @@
         <h2>Search Borrower</h2>
         <input type="number" id="borrowerIdInput" placeholder="Enter borrower Id" />
         <button id="searchBorrowerBtn">Search</button>
+
+        <section id="addBorrowerSection">
+        <h2>Add New Borrower</h2>
+        <form id="addBorrowerForm">
+            <label>Name: <input type="text" id="newBorrowerName" required></label><br/>
+            <label>Email: <input type="email" id="newBorrowerEmail" required></label><br/>
+            <label>Phone: <input type="text" id="newBorrowerPhone"></label><br/>
+            <label>Address: <input type="text" id="newBorrowerAddress"></label><br/>
+            <label>Category:
+                <select id="newBorrowerCategory" required>
+                    <option value="">--Select Category--</option>
+                    <option value="Student">Student</option>
+                    <option value="Faculty">Faculty</option>
+                    <option value="Visitor">Visitor</option>
+                    <option value="Researcher">Researcher</option>
+                </select>
+                </label><br/>
+
+            <label>Department ID (optional): <input type="number" id="newBorrowerDeptId"></label><br/>
+            <button type="submit">Add Borrower</button>
+        </form>
+    </section>
+
     </div>
 
     <div id="borrowerDetails" style="display:none; margin-top:20px;">
@@ -58,7 +81,7 @@
         </form>
 
         <h4>Current Loans</h4>
-        <table id="currentLoansTable" border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+        <table id="currentLoansTable">
             <thead>
             <tr>
                 <th>Book Title</th>
@@ -75,23 +98,25 @@
 
         <h5>Fine Payment History</h5>
         <ul id="finePaymentHistory"></ul>
-
-        <h4>Record Fine Payment</h4>
-        <form id="finePaymentForm">
-            <label>
-                Loan ID:
-                <input type="number" id="fineLoanId" required />
-            </label><br/>
-            <label>
-                Amount:
-                <input type="number" id="fineAmount" step="0.01" required />
-            </label><br/>
-            <label>
-                Payment Method:
-                <input type="text" id="finePaymentMethod" />
-            </label><br/>
-            <button type="button" id="recordFinePaymentBtn">Submit Payment</button>
-        </form>
+        <hr /> 
+        <section id="finePaymentSection" style="margin-top: 30px;">
+            <h3>Record Fine Payment</h3>
+            <form id="finePaymentForm">
+                <label>
+                    Loan ID:
+                    <input type="number" id="fineLoanId" required />
+                </label><br/>
+                <label>
+                    Amount:
+                    <input type="number" id="fineAmount" step="0.01" required />
+                </label><br/>
+                <label>
+                    Payment Method:
+                    <input type="text" id="finePaymentMethod" />
+                </label><br/>
+                <button type="button" id="recordFinePaymentBtn">Submit Payment</button>
+            </form>
+        </section>
     </div>
 
 <script src="/static/js/borrow_management.js"></script>

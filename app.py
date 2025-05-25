@@ -2,9 +2,7 @@ from flask import Flask, request, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import date, timedelta, datetime
-from flask import request, jsonify
 import os
-import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
 from decimal import Decimal
@@ -335,9 +333,6 @@ def add_book():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-from datetime import datetime, timedelta
-from flask import request, jsonify
-
 @app.route('/api/borrow', methods=['POST'])
 def borrow_book():
     try:
@@ -427,43 +422,47 @@ def get_borrower_by_id(borrower_id):
         if not borrower:
             return jsonify({'error': 'Borrower not found'}), 404
 
-        # Current loans where return_date is None (not returned)
+        # --- Current active loans (not returned) ---
         current_loans_query = Loan.query.filter_by(borrower_id=borrower_id, return_date=None).all()
         current_loans = []
         for loan in current_loans_query:
             book_copy = BookCopy.query.get(loan.book_id)
-            book_metadata = None
-            if book_copy:
-                book_metadata = Book.query.get(book_copy.metadata_id)
-
+            book_metadata = Book.query.get(book_copy.metadata_id) if book_copy else None
             current_loans.append({
                 'book_title': book_metadata.title if book_metadata else 'Unknown',
-                'checkout_date': loan.checkout_date.strftime('%Y-%m-%d') if loan.checkout_date else None,
-                'due_date': loan.due_date.strftime('%Y-%m-%d') if loan.due_date else None,
+                'issue_date': loan.checkout_date.strftime('%Y-%m-%d'),
+                'due_date': loan.due_date.strftime('%Y-%m-%d'),
                 'format_borrowed': loan.format_borrowed,
                 'status': loan.status
             })
 
-        # Get all loans IDs for this borrower to filter fines
-        loan_ids = [loan.loan_id for loan in Loan.query.filter_by(borrower_id=borrower_id).all()]
+        # --- Total fines logic ---
+        loans_with_fines = Loan.query.filter(
+            Loan.borrower_id == borrower_id,
+            Loan.fine_amount > 0
+        ).all()
 
-        # Sum of unpaid fines: fines with null payment_date
-        total_fines_due = db.session.query(db.func.coalesce(db.func.sum(FineTransaction.amount), 0)).filter(
-            FineTransaction.loan_id.in_(loan_ids),
-            FineTransaction.payment_date == None
+        total_fines = sum([float(loan.fine_amount or 0) for loan in loans_with_fines])
+
+        paid_fines = db.session.query(
+            db.func.coalesce(db.func.sum(FineTransaction.amount), 0)
+        ).filter(
+            FineTransaction.loan_id.in_([loan.loan_id for loan in loans_with_fines])
         ).scalar()
 
-        # Fine payments: fines with non-null payment_date, ordered by date desc
+        total_fines_due = float(total_fines) - float(paid_fines or 0)
+
+        # --- Fine payment history ---
         fine_payments_query = FineTransaction.query.filter(
-            FineTransaction.loan_id.in_(loan_ids),
+            FineTransaction.loan_id.in_([loan.loan_id for loan in loans_with_fines]),
             FineTransaction.payment_date != None
         ).order_by(FineTransaction.payment_date.desc()).all()
 
         fine_payments = []
         for payment in fine_payments_query:
             fine_payments.append({
-                'amount': float(payment.amount) if payment.amount else 0,
-                'payment_date': payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else None,
+                'amount': float(payment.amount),
+                'date': payment.payment_date.strftime('%Y-%m-%d'),
                 'payment_method': payment.payment_method
             })
 
@@ -473,16 +472,15 @@ def get_borrower_by_id(borrower_id):
             'email': borrower.email,
             'phone': borrower.phone,
             'address': borrower.address,
-            'registration_date': borrower.registration_date.strftime('%Y-%m-%d') if borrower.registration_date else None,
+            'registered_on': borrower.registration_date.strftime('%Y-%m-%d') if borrower.registration_date else None,
             'category': borrower.category_id,
             'department': borrower.department.name if borrower.department else None,
-            'total_fines_due': float(total_fines_due),
+            'total_fines_due': round(total_fines_due, 2),
             'current_loans': current_loans,
             'fine_payments': fine_payments
         })
 
     except Exception as e:
-        
         traceback.print_exc()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
@@ -536,7 +534,7 @@ def record_fine_payment():
         if payment_amount > current_fine:
             return jsonify({'error': f'Payment exceeds current fine amount ({current_fine})'}), 400
 
-        payment_dt = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else datetime.utcnow().date()
+        payment_dt = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else date.today()
 
         fine_payment = FineTransaction(
             loan_id=loan_id,
@@ -591,99 +589,38 @@ def get_borrowers():
         })
     return jsonify(borrowers_data)
 
-# Route to add borrower
 @app.route('/api/borrowers', methods=['POST'])
 def add_borrower():
     data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Invalid JSON data'}), 400
 
-    try:
-        reg_date = None
-        if data.get('registration_date'):
-            reg_date = datetime.date.fromisoformat(data.get('registration_date'))
+    name = data.get('name')
+    email = data.get('email')
+    phone = data.get('phone')
+    address = data.get('address')
+    category_id = data.get('category_id')
+    dept_id = data.get('dept_id')
 
-        new_borrower = Borrower(
-            name=data.get('name'),
-            email=data.get('email'),
-            phone=data.get('phone'),
-            address=data.get('address'),
-            registration_date=reg_date or datetime.date.today(),
-            total_fines_due=data.get('total_fines_due', 0),
-            category_id=data.get('category_id'),
-            dept_id=data.get('dept_id')
-        )
-        db.session.add(new_borrower)
-        db.session.commit()
-        return jsonify({'message': 'Borrower added successfully', 'borrower_id':new_borrower.borrower_id}), 201
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error adding borrower: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+    if not name or not email or not category_id:
+        return jsonify({'message': 'Missing required fields'}), 400
 
+    if Borrower.query.filter_by(email=email).first():
+        return jsonify({'message': 'Email already exists'}), 409
 
-    try:
-        data = request.get_json()
-        loan_id = data.get('loan_id')
-        amount = data.get('amount')
-        payment_method = data.get('payment_method', 'unknown')
-        payment_date = data.get('payment_date')  # optional, 'YYYY-MM-DD'
+    new_borrower = Borrower(
+        name=name,
+        email=email,
+        phone=phone,
+        address=address,
+        category_id=category_id,
+        dept_id=dept_id if dept_id else None,
+        registration_date=datetime.today()
+    )
 
-        if not loan_id or amount is None:
-            return jsonify({'error': 'loan_id and amount are required'}), 400
+    db.session.add(new_borrower)
+    db.session.commit()
 
-        loan = Loan.query.get(loan_id)
-        if not loan:
-            return jsonify({'error': 'Loan not found'}), 404
+    return jsonify({'message': 'Borrower added', 'borrower_id': new_borrower.borrower_id}), 201
 
-        # Convert amount to Decimal for accurate arithmetic
-        payment_amount = Decimal(str(amount))
-        if payment_amount <= 0:
-            return jsonify({'error': 'Payment amount must be positive'}), 400
-
-        current_fine = loan.fine_amount or Decimal('0')
-
-        # Prevent overpayment
-        if payment_amount > current_fine:
-            return jsonify({'error': f'Payment exceeds current fine amount ({current_fine})'}), 400
-
-        
-        payment_dt = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else datetime.utcnow().date()
-
-        # Create new fine payment record
-        fine_payment = FineTransaction(
-            loan_id=loan_id,
-            amount=payment_amount,
-            payment_date=payment_dt,
-            payment_method=payment_method
-        )
-        db.session.add(fine_payment)
-
-        # Deduct payment from loan's fine amount
-        loan.fine_amount = current_fine - payment_amount
-
-        # Update loan status if fine fully paid
-        if loan.fine_amount <= 0:
-            loan.status = 'Fine Paid'  # or any status indicating fine cleared
-
-        # Update borrower's total fines due by recalculating sum from all loans
-        borrower = loan.borrower
-        total_fines = sum([l.fine_amount or Decimal('0') for l in borrower.loans])
-        borrower.total_fines_due = total_fines
-
-        db.session.commit()
-
-        return jsonify({
-            'message': 'Fine payment recorded successfully',
-            'remaining_fine': str(loan.fine_amount),
-            'loan_status': loan.status,
-            'borrower_total_fines_due': str(borrower.total_fines_due)
-        })
-
-    except Exception as e:
-        
-        traceback.print_exc()
-        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 
 if __name__ == '__main__':

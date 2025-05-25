@@ -1,4 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('addBorrowerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const newBorrower = {
+          name: document.getElementById('newBorrowerName').value,
+          email: document.getElementById('newBorrowerEmail').value,
+          phone: document.getElementById('newBorrowerPhone').value,
+          address: document.getElementById('newBorrowerAddress').value,
+          category_id: document.getElementById('newBorrowerCategory').value,
+          dept_id: document.getElementById('newBorrowerDeptId').value || null
+        };
+
+        try {
+          const res = await fetch('/api/borrowers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newBorrower)
+          });
+
+          const result = await res.json();
+
+          if (res.ok) {
+            alert(`Borrower added with ID: ${result.borrower_id}`);
+            document.getElementById('addBorrowerForm').reset();
+          } else {
+            alert(`Error: ${result.message || 'Could not add borrower'}`);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('An error occurred while adding the borrower.');
+        }
+      });
   const fetchBtn = document.getElementById('searchBorrowerBtn');
   const borrowerInput = document.getElementById('borrowerIdInput');
 
