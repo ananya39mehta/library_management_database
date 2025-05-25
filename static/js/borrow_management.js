@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
+          const category = document.getElementById('newBorrowerCategory').value;
+            if (!['Student', 'Faculty', 'Visitor', 'Researcher'].includes(category)) {
+              alert('Please select a valid category.');
+              return;
+            }
+
           const res = await fetch('/api/borrowers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
