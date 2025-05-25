@@ -3,13 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <title>Book Management</title>
-  <link rel="stylesheet" href="/static/css/style_or.css" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body>
+  <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="nav-logo">Library System</a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link active">Home</a></li>
+                <li><a href="/borrower_management" class="nav-link">Borrower Management</a></li>
+                <li><a href="/book_management" class="nav-link">Book Management</a></li>
+                <li><a href="#" class="nav-link">Loans & Transactions</a></li>
+            </ul>
+        </div>
+    </nav>
   <h2>Book Management</h2>
+
 
   <!-- Add Book Form -->
   <h3>Add New Book</h3>
+  
   <form id="addBookForm">
     <input type="text" id="title" placeholder="Title" required />
     <input type="text" id="author" placeholder="Author" />

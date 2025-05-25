@@ -10,7 +10,7 @@ window.onload = function () {
     fetch(`/api/books`)
         .then(res => res.json())
         .then(books => {
-            const book = books.find(b => b.book_id === parseInt(bookId));
+            const book = books.find(b => b.metadata_id === parseInt(bookId));
             if (!book) {
                 document.getElementById('content').innerHTML = '<p>Book not found.</p>';
                 return;

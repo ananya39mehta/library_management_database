@@ -1,15 +1,15 @@
 from flask import Flask, request, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from datetime import date, timedelta, datetime
+from flask import request, jsonify
 import os
 import datetime
-from datetime import date
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
 from decimal import Decimal
-from datetime import datetime
 from sqlalchemy import text
-
+import traceback
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 CORS(app)
@@ -153,50 +153,66 @@ def book_management():
 def loan_fine_management():
     return render_template('loan_fine.html')
 
+# --- Route : display book Deatils in viewer
+@app.route('/api/books/<int:metadata_id>', methods=['GET'])
+def get_book(metadata_id):
+    book = Book.query.get(metadata_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
+
+    return jsonify({
+        'metadata_id': book.metadata_id,
+        'title': book.title,
+        'author': book.author,
+        'publisher': book.publisher,
+        'isbn': book.isbn,
+        'publication_year': book.publication_year,
+        'edition': book.edition,
+        'format': book.format,
+        'category_names': ', '.join([cat.name for cat in book.categories]),
+        'languages': [lang.language for lang in book.languages]
+    })
+
+# ---Route : Dispaly the book Catelog 
 @app.route('/api/books', methods=['GET'])
 def get_books():
     try:
         search_term = request.args.get('search', '').strip()
 
-        # Load book metadata, languages, categories, and physical copies
         query = Book.query.options(
             db.joinedload(Book.languages),
             db.joinedload(Book.categories),
             db.joinedload(Book.copies)
         )
 
-        # Apply search filter
         if search_term:
-            query = query.join(Category, isouter=True).filter(
+            # Explicitly join via association table if many-to-many
+            query = query.join(Book.categories).filter(
                 db.or_(
                     Book.title.ilike(f'%{search_term}%'),
                     Book.author.ilike(f'%{search_term}%'),
                     Category.name.ilike(f'%{search_term}%')
                 )
-            )
+            ).distinct()
 
         books = query.all()
 
-        # Get all book copy IDs to check loans
-        all_copy_ids = [copy.book_id for book in books for copy in book.copies]
+        # Collect all book copy IDs for active loan check
+        copy_ids = [copy.book_id for book in books for copy in book.copies]
 
-        # Fetch active loans for those copies
         active_loans = Loan.query.filter(
-            Loan.book_id.in_(all_copy_ids),
+            Loan.book_id.in_(copy_ids),
             Loan.return_date.is_(None)
         ).all()
 
-        # Group loans by book_id
         loans_dict = {}
         for loan in active_loans:
             loans_dict.setdefault(loan.book_id, []).append(loan)
 
         books_data = []
         for book in books:
-            # Unique shelf locations for all copies of this book
-            shelf_locations = sorted({copy.shelf_location for copy in book.copies if copy.shelf_location})
+            shelf_locations = list({copy.shelf_location for copy in book.copies})
 
-            # Gather active loans for all copies of this book
             active_loans_for_book = []
             for copy in book.copies:
                 active_loans_for_book.extend(loans_dict.get(copy.book_id, []))
@@ -214,20 +230,20 @@ def get_books():
                 'edition': book.edition,
                 'format': book.format,
                 'languages': [lang.language for lang in book.languages],
-                'shelf_locations': shelf_locations,  # list of locations like ['F1', 'F2']
+                'shelf_locations': shelf_locations,
                 'total_copies': len(book.copies),
                 'available_copies': len(book.copies) - active_count,
                 'category_names': [cat.name for cat in book.categories],
                 'borrower_name': active_loan.borrower.name if active_loan and active_loan.borrower else None,
                 'borrow_date': active_loan.checkout_date.isoformat() if active_loan else None,
                 'return_date': active_loan.return_date.isoformat() if active_loan and active_loan.return_date else None,
-                'borrowed_by_current_user': False  # update this based on current user if needed
+                'borrowed_by_current_user': False
             })
 
         return jsonify(books_data)
 
     except Exception as e:
-        import traceback
+        
         traceback.print_exc()
         app.logger.error(f"Error loading books: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -252,7 +268,7 @@ def get_stats():
         })
 
     except Exception as e:
-        import traceback
+       
         traceback.print_exc()
         app.logger.error(f"Error fetching stats: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -339,126 +355,89 @@ def add_book():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# Route to Borrow Book 
+from datetime import datetime, timedelta
+from flask import request, jsonify
+
 @app.route('/api/borrow', methods=['POST'])
 def borrow_book():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Invalid JSON data'}), 400
-
-    book_id = data.get('book_id')
-    borrower_id = data.get('borrower_id')
-    borrow_date_str = data.get('borrow_date')
-
-    if not book_id or not borrower_id or not borrow_date_str:
-        return jsonify({'error': 'Missing required fields'}), 400
-
     try:
-        borrow_date = datetime.date.fromisoformat(borrow_date_str)
-    except ValueError:
-        return jsonify({'error': 'Invalid borrow date format'}), 400
+        data = request.get_json()
+        book_id = data.get('book_id')
+        borrower_id = data.get('borrower_id')
+        borrow_date = datetime.strptime(data.get('borrow_date'), '%Y-%m-%d').date()
 
-    book = Book.query.get(book_id)
-    if not book:
-        return jsonify({'error': 'Book not found'}), 404
+        # Debug print input values
+        print(f"[DEBUG] Borrowing book_id: {book_id}, borrower_id: {borrower_id}, borrow_date: {borrow_date}")
 
-    if book.available_copies < 1:
-        return jsonify({'error': 'No available copies'}), 400
+        borrower = Borrower.query.get(borrower_id)
+        if not borrower:
+            return jsonify({'message': 'Borrower not found'}), 404
 
-    borrower = Borrower.query.get(borrower_id)
-    if not borrower:
-        return jsonify({'error': 'Borrower not found'}), 404
+        book_copy = BookCopy.query.get(book_id)
+        if not book_copy:
+            return jsonify({'message': 'Book copy not found'}), 400
+        if not book_copy.available:
+            return jsonify({'message': 'Book copy is not available'}), 400
 
-    # Find an available copy number for the book
-    available_copy = BookCopy.query.filter_by(book_id=book.book_id, status='available').first()
-    if not available_copy:
-        return jsonify({'error': 'No available copies (none available in copies table)'}), 400
+        max_loan_period = borrower.category.max_loan_period or 14
+        due_date = borrow_date + timedelta(days=max_loan_period)
 
-    max_loan_days = 14
-    if borrower.category_id:
-        category = BorrowerCategory.query.get(borrower.category_id)
-        if category and category.max_loan_period:
-            max_loan_days = category.max_loan_period
-    due_date = borrow_date + datetime.timedelta(days=max_loan_days)
+        loan = Loan(
+            borrower_id=borrower_id,
+            book_id=book_id,
+            checkout_date=borrow_date,
+            due_date=due_date,
+            status='borrowed',
+            format_borrowed=book_copy.book.format if book_copy.book else 'Unknown'
+        )
 
-    new_loan = Loan(
-        borrower_id=borrower_id,
-        book_id=book.book_id,
-        copy_number=available_copy.copy_number,
-        checkout_date=borrow_date,
-        due_date=due_date,
-        format_borrowed=book.format,
-        status='borrowed'
-    )
-
-    try:
-        db.session.add(new_loan)
-        # Mark copy as unavailable
-        available_copy.status = 'borrowed'
-        # Update available copies count
-        book.available_copies -= 1
-
+        book_copy.available = False
+        db.session.add(loan)
         db.session.commit()
-        return jsonify({'message': 'Book borrowed successfully'})
+
+        return jsonify({'message': 'Book borrowed successfully!'}), 200
+
     except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error borrowing book: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        print(f"[ERROR] Borrow failed: {e}")
+        return jsonify({'message': 'An error occurred while borrowing the book.'}), 500
 
 # Route to return book 
 @app.route('/api/return', methods=['POST'])
 def return_book():
     data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Invalid JSON data'}), 400
+    book_id = data.get('book_id')  # exact book copy
+    borrower_id = data.get('borrower_id')
+    return_date = datetime.strptime(data.get('return_date'), '%Y-%m-%d').date()
 
-    loan_id = data.get('loan_id')
-    return_date_str = data.get('return_date')
+    loan = Loan.query.filter_by(
+        book_id=book_id,
+        borrower_id=borrower_id,
+        status='borrowed',
+        return_date=None
+    ).first()
 
-    if not loan_id or not return_date_str:
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    try:
-        return_date = datetime.date.fromisoformat(return_date_str)
-    except ValueError:
-        return jsonify({'error': 'Invalid return date format'}), 400
-
-    loan = Loan.query.get(loan_id)
     if not loan:
-        return jsonify({'error': 'Loan not found'}), 404
+        return jsonify({'message': 'No active loan found for this book and borrower.'}), 404
 
-    if loan.return_date:
-        return jsonify({'error': 'Book already returned'}), 400
+    loan.return_date = return_date
+    loan.status = 'returned'
 
-    try:
-        loan.return_date = return_date
-        loan.status = 'returned'
+    # Make book available again
+    book_copy = BookCopy.query.get(book_id)
+    if book_copy:
+        book_copy.available = True
 
-        # Update available copies of book
-        book = Book.query.get(loan.book_id)
-        book.available_copies += 1
+    # Fine calculation
+    # Check for overdue and calculate fine
+    overdue_days = (return_date - loan.due_date).days
+    if overdue_days > 0:
+        fine_rate = loan.borrower.category.fine_rate_per_day or Decimal('0')
+        fine = Decimal(str(fine_rate)) * Decimal(overdue_days)
+        loan.fine_amount = fine
+        loan.borrower.total_fines_due += fine
 
-        # Mark copy as available again
-        book_copy = BookCopy.query.filter_by(book_id=loan.book_id, copy_number=loan.copy_number).first()
-        if book_copy:
-            book_copy.status = 'available'
-
-        # Calculate fines
-        if return_date > loan.due_date:
-            days_late = (return_date - loan.due_date).days
-            category = BorrowerCategory.query.get(loan.borrower.category_id)
-            fine_rate = category.fine_rate_per_day if category else 0
-            loan.fine_amount = fine_rate * days_late
-            # Add to borrower's total fines
-            loan.borrower.total_fines_due += loan.fine_amount
-
-        db.session.commit()
-        return jsonify({'message': 'Book returned successfully'})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error returning book: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-# _______________________________________________________
+    db.session.commit()
+    return jsonify({'message': 'Book returned successfully!'}), 200
 
 # ---Route : Get borrower Info by ID
 @app.route('/api/borrowers/<int:borrower_id>', methods=['GET'])
@@ -523,7 +502,7 @@ def get_borrower_by_id(borrower_id):
         })
 
     except Exception as e:
-        import traceback
+        
         traceback.print_exc()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
@@ -548,7 +527,7 @@ def update_borrower(borrower_id):
         return jsonify({'message': 'Borrower info updated successfully'})
     
     except Exception as e:
-        import traceback
+        
         traceback.print_exc()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
@@ -606,7 +585,7 @@ def record_fine_payment():
         })
 
     except Exception as e:
-        import traceback
+        
         traceback.print_exc()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
@@ -688,7 +667,7 @@ def add_borrower():
         if payment_amount > current_fine:
             return jsonify({'error': f'Payment exceeds current fine amount ({current_fine})'}), 400
 
-        from datetime import datetime
+        
         payment_dt = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else datetime.utcnow().date()
 
         # Create new fine payment record
@@ -722,7 +701,7 @@ def add_borrower():
         })
 
     except Exception as e:
-        import traceback
+        
         traceback.print_exc()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 

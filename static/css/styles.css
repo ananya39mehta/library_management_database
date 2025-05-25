@@ -153,3 +153,23 @@ th:last-child, td:last-child {
 .borrowed:hover {
     background-color: #ffeeba;
 }
+
+.loan-form {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.loan-form input {
+    display: block;
+    margin: 5px 0 15px;
+    padding: 8px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.loan-form button {
+    padding: 10px 20px;
+    cursor: pointer;
+}
