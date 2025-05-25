@@ -137,7 +137,7 @@ class BookCategory(db.Model):
 def home():
     return render_template('index.html')
 
-@app.route('/viewer')
+@app.route('/viewer.html')
 def viewer():
     return render_template('viewer.html')
 
@@ -152,26 +152,6 @@ def book_management():
 @app.route('/loan_fine')
 def loan_fine_management():
     return render_template('loan_fine.html')
-
-# --- Route : display book Deatils in viewer
-@app.route('/api/books/<int:metadata_id>', methods=['GET'])
-def get_book(metadata_id):
-    book = Book.query.get(metadata_id)
-    if not book:
-        return jsonify({'message': 'Book not found'}), 404
-
-    return jsonify({
-        'metadata_id': book.metadata_id,
-        'title': book.title,
-        'author': book.author,
-        'publisher': book.publisher,
-        'isbn': book.isbn,
-        'publication_year': book.publication_year,
-        'edition': book.edition,
-        'format': book.format,
-        'category_names': ', '.join([cat.name for cat in book.categories]),
-        'languages': [lang.language for lang in book.languages]
-    })
 
 # ---Route : Dispaly the book Catelog 
 @app.route('/api/books', methods=['GET'])

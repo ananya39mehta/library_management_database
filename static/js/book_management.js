@@ -59,10 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${book.author}</td>
         <td>${book.isbn}</td>
         <td>${book.shelf_locations.join(', ')}</td>
-        <td>
-          <button onclick="deleteBook(${book.metadata_id})">Delete</button>
-        </td>
-      `;
+         `;
       bookTableBody.appendChild(row);
     });
   }
